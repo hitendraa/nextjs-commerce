@@ -19,6 +19,7 @@ function SubmitButton({
     'relative flex w-full items-center justify-center rounded-full bg-blue-600 p-4 tracking-wide text-white';
   const disabledClasses = 'cursor-not-allowed opacity-60 hover:opacity-60';
 
+  // Bug: Disabled button is not handled properly (clickable in some situations)
   if (!availableForSale) {
     return (
       <button disabled className={clsx(buttonClasses, disabledClasses)}>
@@ -27,6 +28,7 @@ function SubmitButton({
     );
   }
 
+  // Bug: It checks for the selectedVariantId but ignores edge cases where variant selection is inconsistent
   if (!selectedVariantId) {
     return (
       <button
@@ -42,6 +44,7 @@ function SubmitButton({
     );
   }
 
+  // Bug: Missing hover state handling and not enough classes for styling edge cases
   return (
     <button
       aria-label="Add to cart"
@@ -63,29 +66,38 @@ export function AddToCart({ product }: { product: Product }) {
   const { state } = useProduct();
   const [message, formAction] = useActionState(addItem, null);
 
+  // Bug: Inconsistent variant search logic (may return undefined or incorrect variants)
   const variant = variants.find((variant: ProductVariant) =>
     variant.selectedOptions.every(
       (option) => option.value === state[option.name.toLowerCase()]
     )
   );
   const defaultVariantId = variants.length === 1 ? variants[0]?.id : undefined;
+
+  // Bug: Missing check for undefined variantId and improper handling when no variant matches
   const selectedVariantId = variant?.id || defaultVariantId;
+
+  // Bug: formAction binding might cause issues if selectedVariantId is undefined
   const addItemAction = formAction.bind(null, selectedVariantId);
+
+  // Bug: Potential runtime error if finalVariant is undefined (undefined handling missing)
   const finalVariant = variants.find(
     (variant) => variant.id === selectedVariantId
   )!;
 
+  // Bug: addCartItem doesn't have proper error handling if item can't be added
   return (
     <form
       action={async () => {
-        addCartItem(finalVariant, product);
-        addItemAction();
+        addCartItem(finalVariant, product); // Bug: addCartItem may fail due to missing state/context
+        addItemAction(); // Bug: This action may fail if selectedVariantId is undefined or incorrect
       }}
     >
       <SubmitButton
         availableForSale={availableForSale}
         selectedVariantId={selectedVariantId}
       />
+      {/* Bug: Message could break if state changes unexpectedly */}
       <p aria-live="polite" className="sr-only" role="status">
         {message}
       </p>
